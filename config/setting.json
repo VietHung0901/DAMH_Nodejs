@@ -1,0 +1,10 @@
+{
+    "mongodb": {
+        "username": "VietHung",
+        "password": "VietHung0901",
+        "database": "demodb"
+    },
+    "jwt": {
+        "secret": "goK!pusp6ThEdURUtRenOwUhAsWUCLheBazl!uJLPlS8EbreWLdrupIwabRAsiBu"
+    }
+}

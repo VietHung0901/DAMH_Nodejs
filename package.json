@@ -1,0 +1,19 @@
+{
+  "name": "mos_damh",
+  "version": "1.0.0",
+  "description": "",
+  "license": "ISC",
+  "author": "Tran Viet Hung",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "body-parser": "^1.20.3",
+    "ejs": "^3.1.10",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongodb": "^6.15.0"
+  }
+}
