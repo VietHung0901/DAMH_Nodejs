@@ -5,14 +5,14 @@ var router = express.Router();
 var Product = require("../entity/product");
 var ProductService = require("../services/productService");
 
-var verifyToken = require('../util/VerifyToken');
+const { verifyToken, verifyPermission, verifyRole } = require('../util/VerifyToken');
 
-// router.use("/", function(req, res){
-//     // res.render("product");
-//     res.json({message: "This is product page"});
-// });
+router.use("/1", function(req, res){
+    res.render("product");
+    // res.json({message: "This is product page"});
+});
 
-router.get("/product-list", verifyToken, async function(req, res){
+router.get("/product-list", verifyToken, verifyRole("admin"), verifyPermission("product.view"), async function(req, res){
     var productService = new ProductService();
     var product = await productService.getProductList();
     res.json(product);
@@ -47,7 +47,6 @@ router.get("/get-product", async function(req, res){
     var productService = new ProductService();
     var product = await productService.getProduct(req.query.id);
     res.json(product);
-
 });
 
 module.exports = router;

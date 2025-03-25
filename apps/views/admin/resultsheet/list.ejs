@@ -1,0 +1,90 @@
+<%- include('../partical/header'); %>
+    <!-- Content wrapper -->
+    <div class="content-wrapper">
+        <!-- Content -->
+
+        <div class="container-xxl flex-grow-1 container-p-y">
+            <!-- Hoverable Table rows -->
+            <div class="card">
+                <h3 class="card-header">DANH SÁCH BẢNG ĐIỂM</h3>
+                <div class="table-responsive text-nowrap">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>HỌ TÊN</th>
+                                <th>ĐIỂM</th>
+                                <th>THỜI GIAN</th>
+                            </tr>
+                        </thead>
+                        <tbody class="table-border-bottom-0">
+                            <!-- Để api load data lên -->
+                        </tbody>
+                    </table>
+                    <div id="loading" style="display: none; text-align: center; margin-top: 10px;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p>Đang xử lý, vui lòng chờ...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="buy-now">
+        <a id="resultSheetLink" class="btn btn-danger btn-buy-now">Nhập điểm</a>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", async function () {
+            const loading = document.getElementById('loading');
+            loading.style.display = 'block';
+
+            window.contestId = "<%= contest_id %>";
+            const contest_id = window.contestId;
+
+            // Lấy phần tử thẻ a
+            const resultSheetLink = document.getElementById("resultSheetLink");
+            // Cập nhật href với contest_id
+            if (window.contestId) {
+                resultSheetLink.href = `/admin/contest/resultsheet/insert?contest_id=${window.contestId}`;
+            }
+
+            const apiUrl = `http://localhost:3000/admin/contest/resultsheet/resultsheet-list-by-contest_id?contest_id=${contest_id}`;
+            const tableBody = document.querySelector(".table-border-bottom-0");
+
+            try {
+                // Gọi API để lấy danh sách cuộc thi
+                const response = await fetch(apiUrl);
+                const contests = await response.json();
+
+                // Xóa nội dung cũ trong bảng
+                tableBody.innerHTML = "";
+
+                // Duyệt qua danh sách cuộc thi và thêm vào bảng
+                contests.forEach((resultsheet) => {
+                    const row = `
+                        <tr>
+                            <td><strong>${resultsheet.username}</strong></td>
+                            <td>${resultsheet.score}</td>
+                            <td><i class="fab fa-angular fa-lg text-danger me-3"></i> <strong>${resultsheet.minute}:${resultsheet.second}</strong></td>
+                        </tr>
+                    `;
+                    tableBody.insertAdjacentHTML("beforeend", row);
+                });
+                loading.style.display = 'none';
+
+            } catch (error) {
+                console.error("Lỗi khi tải danh sách cuộc thi:", error);
+            }
+        });
+
+        // Hàm chỉnh sửa cuộc thi
+        function editContest(id) {
+            alert("Chỉnh sửa cuộc thi có ID: " + id);
+            // Thêm logic chỉnh sửa ở đây
+        }
+    </script>
+
+    <!--/ Hoverable Table rows -->
+    <%- include('../partical/footer'); %>

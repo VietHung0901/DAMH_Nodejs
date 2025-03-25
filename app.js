@@ -4,6 +4,7 @@ var app = express();
 app.set("views", __dirname + "/apps/views");
 app.set("view engine", "ejs");
 app.use("/static", express.static(__dirname + "/public"));
+app.use("/assets", express.static(__dirname + "/assets"));
 
 var bodyParser = require('body-parser');
 app.use(express.json());

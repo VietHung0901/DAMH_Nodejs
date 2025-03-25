@@ -2,7 +2,7 @@
     "mongodb": {
         "username": "VietHung",
         "password": "VietHung0901",
-        "database": "demodb"
+        "database": "MOS"
     },
     "jwt": {
         "secret": "goK!pusp6ThEdURUtRenOwUhAsWUCLheBazl!uJLPlS8EbreWLdrupIwabRAsiBu"

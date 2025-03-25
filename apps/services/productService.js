@@ -3,7 +3,6 @@ var config = require("../../config/setting.json");
 
 class ProductService {
     databaseConnection = require('../database/database');
-    product = require('../entity/product');
 
     client;
     productDatabase;
