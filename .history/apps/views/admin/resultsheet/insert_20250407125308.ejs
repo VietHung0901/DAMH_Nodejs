@@ -1,0 +1,166 @@
+<%- include('../partical/header'); %>
+    <!-- Content wrapper -->
+    <div class="content-wrapper">
+        <!-- Content -->
+
+        <div class="container-xxl container-p-y">
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <h5 class="card-header">Chọn cách nhập điểm</h5>
+                        <div class="card-body demo-vertical-spacing demo-only-element">
+                            <div class="input-group">
+                                <input type="file" accept=".xlsx" class="form-control" id="excelFileInput" />
+                                <label class="input-group-text" id="btn-submit">Upload File Excel</label>
+                            </div>
+                            <div id="loading" style="display: none; text-align: center; margin-top: 10px;">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p>Đang xử lý, vui lòng chờ...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="container-xxl flex-grow-1 container-p-y">
+            <!-- Hoverable Table rows -->
+            <div class="card">
+                <h3 class="card-header">BẢNG ĐIỂM</h3>
+                <div class="table-responsive text-nowrap">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>HỌ TÊN</th>
+                                <th>ĐIỂM</th>
+                                <th>PHÚT</th>
+                                <th>GIÂY</th>
+                            </tr>
+                        </thead>
+                        <tbody class="table-border-bottom-0">
+                            <!-- Để api load data lên -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const fileInput = document.getElementById('excelFileInput');
+            const tableBody = document.querySelector(".table tbody");
+            const uploadButton = document.getElementById('btn-submit');
+            const loading = document.getElementById('loading');
+            let selectedFile = null;
+    
+            function showLoading() {
+                loading.style.display = 'block';
+            }
+    
+            function hideLoading() {
+                loading.style.display = 'none';
+            }
+    
+            async function loadFile(file) {
+                return new Promise((resolve, reject) => {
+                    if (!file || file.type !== "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") {
+                        alert("Vui lòng chọn tệp Excel hợp lệ (.xlsx)");
+                        reject("Invalid file type");
+                        return;
+                    }
+                    showLoading();
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", raw: true });
+    
+                        tableBody.innerHTML = "";
+    
+                        rows.slice(1).forEach(row => {
+                            if (row.length < 4) return;
+                            const newRow = document.createElement("tr");
+                            row.slice(0, 4).forEach(cellData => {
+                                const cellElement = document.createElement("td");
+                                cellElement.textContent = cellData;
+                                newRow.appendChild(cellElement);
+                            });
+                            tableBody.appendChild(newRow);
+                        });
+    
+                        hideLoading();
+                        resolve(file);
+                    };
+                    reader.onerror = () => {
+                        hideLoading();
+                        reject("Lỗi khi đọc file.");
+                    };
+                    reader.readAsArrayBuffer(file);
+                });
+            }
+    
+            fileInput.addEventListener('change', async function (event) {
+                selectedFile = event.target.files[0];
+                try {
+                    await loadFile(selectedFile);
+                } catch (error) {
+                    console.error(error);
+                }
+            });
+    
+            async function uploadFile() {
+                if (!selectedFile) {
+                    alert("Vui lòng chọn một file Excel trước khi tải lên.");
+                    return;
+                }
+                showLoading();
+                const contest_id = "<%= contest_id %>";
+                const formData = new FormData();
+                formData.append("file", selectedFile);
+                try {
+                    const token = localStorage.getItem("token"); // Lấy token từ localStorage
+
+                    if (!token) {
+                        alert("Bạn cần đăng nhập trước khi tải file.");
+                        hideLoading();
+                        return;
+                    }
+
+                    const response = await fetch(`/admin/contest/resultsheet/insert-resultsheet-by-excel?contest_id=${contest_id}`, {
+                        method: "POST",
+                        headers: {
+                            "Authorization": `Bearer ${token}` // Thêm token vào header
+                        },
+                        body: formData
+                    });
+
+                    const result = await response.json();
+                    hideLoading();
+
+                    if (response.ok) {
+                        alert(result.message);
+                    } else {
+                        alert("Lỗi: " + result.message);
+                    }
+                } catch (error) {
+                    hideLoading();
+                    console.error("Lỗi khi tải file lên:", error);
+                    alert("Đã xảy ra lỗi khi tải file lên.");
+                }
+            }
+
+    
+            uploadButton.addEventListener('click', async function () {
+                await uploadFile();
+            });
+        });
+    </script>
+    
+
+    <!--/ Hoverable Table rows -->
+    <%- include('../partical/footer'); %>
