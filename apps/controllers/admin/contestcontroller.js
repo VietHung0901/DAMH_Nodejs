@@ -16,7 +16,7 @@ router.get("/", function(req, res){
     res.render("admin/contest/list");
 })
 
-router.post("/insert-contest", verifyToken, verifyRole("admin"), async function(req, res){
+router.post("/insert-contest", async function(req, res){
     var contestService = new ContestService();
     var contest = new Contest();
 

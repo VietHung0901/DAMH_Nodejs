@@ -24,8 +24,8 @@ router.post("/insert-registration", async function (req, res) {
     var registrationService = new RegistrationService();
     var registration = new Registration();
     registration.date = req.body.date;
-    registration.user_id = req.body.user_id;
-    registration.contest_id = req.body.contest_id;
+    registration.user_id = new ObjectId(req.body.user_id);
+    registration.contest_id = new ObjectId(req.body.contest_id);
     var result = await registrationService.insertRegistration(registration);
     res.json({status: true, message: "Insert registration successly"});
 });

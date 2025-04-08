@@ -12,7 +12,8 @@ router.use("/1", function(req, res){
     // res.json({message: "This is product page"});
 });
 
-router.get("/product-list", verifyToken, verifyRole("admin"), verifyPermission("product.view"), async function(req, res){
+// router.get("/product-list", verifyToken, verifyRole("admin"), verifyPermission("product.view"), async function(req, res){
+router.get("/product-list", verifyToken, async function(req, res){
     var productService = new ProductService();
     var product = await productService.getProductList();
     res.json(product);

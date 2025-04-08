@@ -69,7 +69,6 @@
                 return new Promise((resolve, reject) => {
                     if (!file || file.type !== "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") {
                         alert("Vui lòng chọn tệp Excel hợp lệ (.xlsx)");
-                        reject("Invalid file type");
                         return;
                     }
                     showLoading();
@@ -79,7 +78,7 @@
                         const workbook = XLSX.read(data, { type: 'array' });
                         const sheet = workbook.Sheets[workbook.SheetNames[0]];
                         const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", raw: true });
-    
+
                         tableBody.innerHTML = "";
     
                         rows.slice(1).forEach(row => {
@@ -126,6 +125,7 @@
                     const response = await fetch(`/admin/contest/resultsheet/insert-resultsheet-by-excel?contest_id=${contest_id}`, {
                         method: "POST",
                         body: formData
+                        //thiếu header
                     });
                     const result = await response.json();
                     hideLoading();
@@ -147,6 +147,5 @@
         });
     </script>
     
-
     <!--/ Hoverable Table rows -->
     <%- include('../partical/footer'); %>
