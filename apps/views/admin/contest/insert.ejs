@@ -1,0 +1,70 @@
+<%- include('../partical/header'); %>
+
+    <div class="content-wrapper">
+        <div class="container-xxl flex-grow-1 container-p-y">
+            <div class="card">
+                <h3 class="card-header">TẠO CUỘC THI MỚI</h3>
+                <div class="card-body">
+                    <form id="contestForm">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Tên cuộc thi</label>
+                            <input type="text" class="form-control" id="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="date" class="form-label">Thời gian</label>
+                            <input type="date" class="form-control" id="date" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="subject" class="form-label">Chủ đề</label>
+                            <input type="text" class="form-control" id="subject" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="quantity" class="form-label">Số lượng</label>
+                            <input type="number" class="form-control" id="quantity" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Tạo cuộc thi</button>
+                        <div id="statusMsg" class="mt-3"></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById("contestForm").addEventListener("submit", async function (e) {
+
+            e.preventDefault();
+
+            const name = document.getElementById("name").value;
+            const date = document.getElementById("date").value;
+            const subject = document.getElementById("subject").value;
+            const quantity = parseInt(document.getElementById("quantity").value);
+
+            const data = { name, date, subject, quantity };
+
+            const statusMsg = document.getElementById("statusMsg");
+            statusMsg.innerHTML = 'Đang gửi dữ liệu...';
+
+            try {
+                const response = await fetch("http://localhost:3000/admin/contest/insert-contest", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(data),
+                });
+
+                if (response.ok) {
+                    statusMsg.innerHTML = '<span class="text-success">Tạo cuộc thi thành công!</span>';
+                    document.getElementById("contestForm").reset();
+                } else {
+                    statusMsg.innerHTML = '<span class="text-danger">Tạo thất bại. Vui lòng kiểm tra lại!</span>';
+                }
+            } catch (err) {
+                console.error(err);
+                statusMsg.innerHTML = '<span class="text-danger">Lỗi kết nối đến server!</span>';
+            }
+        });
+    </script>
+
+    <%- include('../partical/footer'); %>

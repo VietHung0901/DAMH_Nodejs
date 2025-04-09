@@ -35,9 +35,11 @@
     <div class="buy-now">
         <a id="resultSheetLink" class="btn btn-danger btn-buy-now">Xem bảng điểm</a>
     </div>
+    <a id="importfile" class="btn btn-danger btn-buy-now">Import phiếu ký</a>
 
     <script>
         document.addEventListener("DOMContentLoaded", async function () {
+            
             const loading = document.getElementById('loading');
             loading.style.display = 'block';
             
@@ -46,6 +48,8 @@
 
             // Lấy phần tử thẻ a
             const resultSheetLink = document.getElementById("resultSheetLink");
+            const importfile = document.getElementById("importfile");
+
             if (!resultSheetLink) {
             console.error("Thẻ a không tìm thấy!");
             return;
@@ -53,6 +57,7 @@
             // Cập nhật href với contest_id
             if (window.contestId) {
                 resultSheetLink.href = `/admin/contest/resultsheet?contest_id=${window.contestId}`;
+                importfile.href = `/admin/contest/registration/insert?contest_id=${window.contestId}`;
             }
 
             const apiUrl = `http://localhost:3000/admin/contest/registration/registration-list-by-contest_id?contest_id=${contest_id}`;

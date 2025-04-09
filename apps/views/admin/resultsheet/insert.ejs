@@ -34,6 +34,7 @@
                         <thead>
                             <tr>
                                 <th>HỌ TÊN</th>
+                                <th>EMAIL</th>
                                 <th>ĐIỂM</th>
                                 <th>PHÚT</th>
                                 <th>GIÂY</th>
@@ -48,23 +49,32 @@
         </div>
     </div>
 
+    <div class="buy-now">
+        <a id="checkresultSheetLink" class="btn btn-danger btn-buy-now">Kiểm tra điểm</a>
+    </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script>
+    <!-- <script>
         document.addEventListener('DOMContentLoaded', function () {
+
+            // Lấy phần tử thẻ a
+            const resultSheetLink = document.getElementById("checkresultSheetLink");
+
             const fileInput = document.getElementById('excelFileInput');
             const tableBody = document.querySelector(".table tbody");
             const uploadButton = document.getElementById('btn-submit');
             const loading = document.getElementById('loading');
-            let selectedFile = null;
-    
+
+            const contest_id = "<%= contest_id %>";
+
             function showLoading() {
                 loading.style.display = 'block';
             }
-    
+
             function hideLoading() {
                 loading.style.display = 'none';
             }
-    
+
             async function loadFile(file) {
                 return new Promise((resolve, reject) => {
                     if (!file || file.type !== "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") {
@@ -80,18 +90,18 @@
                         const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", raw: true });
 
                         tableBody.innerHTML = "";
-    
+
                         rows.slice(1).forEach(row => {
-                            if (row.length < 4) return;
+                            if (row.length < 5) return;
                             const newRow = document.createElement("tr");
-                            row.slice(0, 4).forEach(cellData => {
+                            row.slice(0, 5).forEach(cellData => {
                                 const cellElement = document.createElement("td");
                                 cellElement.textContent = cellData;
                                 newRow.appendChild(cellElement);
                             });
                             tableBody.appendChild(newRow);
                         });
-    
+
                         hideLoading();
                         resolve(file);
                     };
@@ -102,7 +112,7 @@
                     reader.readAsArrayBuffer(file);
                 });
             }
-    
+
             fileInput.addEventListener('change', async function (event) {
                 selectedFile = event.target.files[0];
                 try {
@@ -111,41 +121,361 @@
                     console.error(error);
                 }
             });
-    
+
             async function uploadFile() {
-                if (!selectedFile) {
-                    alert("Vui lòng chọn một file Excel trước khi tải lên.");
+                // Thu thập dữ liệu từ bảng HTML
+                const data = [];
+
+                document.querySelectorAll(".table tbody tr").forEach(row => {
+                    const cells = row.querySelectorAll("td");
+                    if (cells.length >= 5) {
+                        const rowData = {
+                            userName: cells[0].textContent.trim(),
+                            score: parseFloat(cells[2].textContent),
+                            minute: parseInt(cells[3].textContent),
+                            second: parseInt(cells[4].textContent),
+                            email: cells[1].textContent.trim()
+                        };
+                        data.push(rowData);
+                    }
+                });
+
+                if (data.length === 0) {
+                    alert("Không có dữ liệu nào để gửi!");
                     return;
                 }
+
                 showLoading();
-                const contest_id = "<%= contest_id %>";
-                const formData = new FormData();
-                formData.append("file", selectedFile);
+                const token = localStorage.getItem("token");
+
+                if (!token) {
+                    alert("Chưa có token, vui lòng đăng nhập lại.");
+                    hideLoading();
+                    return;
+                }
+
                 try {
-                    const response = await fetch(`/admin/contest/resultsheet/insert-resultsheet-by-excel?contest_id=${contest_id}`, {
+                    const response = await fetch(`/admin/contest/resultsheet/insert-resultsheet-json?contest_id=${contest_id}`, {
                         method: "POST",
-                        body: formData
-                        //thiếu header
+                        headers: {
+                            "Authorization": `Bearer ${token}`,
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({ data }) // Gửi dữ liệu bảng đã kiểm tra
                     });
+
                     const result = await response.json();
                     hideLoading();
+
                     if (response.ok) {
-                        alert(result.message);
+                        alert(result.message || "Tải dữ liệu thành công!");
                     } else {
-                        alert("Lỗi: " + result.message);
+                        if (response.status === 401) {
+                            alert("Hết phiên đăng nhập, vui lòng đăng nhập lại!");
+                        } else if (response.status === 403) {
+                            alert("Bạn không có quyền truy cập tài nguyên này.");
+                        } else {
+                            alert("Lỗi: " + (result.message || "Không xác định"));
+                        }
                     }
                 } catch (error) {
                     hideLoading();
-                    console.error("Lỗi khi tải file lên:", error);
-                    alert("Đã xảy ra lỗi khi tải file lên.");
+                    console.error("Lỗi khi tải dữ liệu:", error);
+                    alert("Đã xảy ra lỗi khi tải dữ liệu lên.");
                 }
             }
-    
+
             uploadButton.addEventListener('click', async function () {
                 await uploadFile();
             });
+
+            async function checkResultSheetData() {
+                const data = [];
+
+                document.querySelectorAll(".table tbody tr").forEach(row => {
+                    const cells = row.querySelectorAll("td");
+                    if (cells.length >= 5) {
+                        const rowData = {
+                            userName: cells[0].textContent.trim(),
+                            email: cells[1].textContent.trim(),
+                            score: parseFloat(cells[2].textContent),
+                            minute: parseInt(cells[3].textContent),
+                            second: parseInt(cells[4].textContent)
+                        };
+                        data.push(rowData);
+                    }
+                });
+
+                if (data.length === 0) {
+                    alert("Không có dữ liệu để kiểm tra.");
+                    return;
+                }
+
+                showLoading();
+                const token = localStorage.getItem("token");
+
+                if (!token) {
+                    alert("Vui lòng đăng nhập lại.");
+                    hideLoading();
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`/admin/contest/resultsheet/check-resultsheet?contest_id=${contest_id}`, {
+                        method: "POST",
+                        headers: {
+                            "Authorization": `Bearer ${token}`,
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({ data })
+                    });
+
+                    const result = await response.json();
+                    hideLoading();
+
+                    if (response.ok) {
+                        const checkedData = result.data;
+
+                        // Cập nhật bảng với status từ server
+                        tableBody.innerHTML = "";
+                        checkedData.forEach(item => {
+                            const row = document.createElement("tr");
+                            row.innerHTML = `
+                            <td>${item.userName}</td>
+                            <td>${item.email}</td>
+                            <td>${item.score}</td>
+                            <td>${item.minute}</td>
+                            <td>${item.second}</td>
+                            <td style="font-weight:bold; color:${item.status === 'Hợp lệ' ? 'green' : 'red'}">${item.status}</td>
+                        `;
+                            tableBody.appendChild(row);
+                        });
+
+                        alert("Đã kiểm tra xong dữ liệu.");
+                    } else {
+                        alert(result.message || "Lỗi không xác định khi kiểm tra dữ liệu.");
+                    }
+                } catch (error) {
+                    console.error("Lỗi kiểm tra:", error);
+                    alert("Đã xảy ra lỗi khi kiểm tra dữ liệu.");
+                    hideLoading();
+                }
+            }
+
+            resultSheetLink.addEventListener('click', async function () {
+                await checkResultSheetData();
+            });
+        });
+    </script> -->
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const resultSheetLink = document.getElementById("checkresultSheetLink");
+            const fileInput = document.getElementById('excelFileInput');
+            const tableBody = document.querySelector(".table tbody");
+            const uploadButton = document.getElementById('btn-submit');
+            const loading = document.getElementById('loading');
+            const contest_id = "<%= contest_id %>";
+            let checkedData = []; // lưu lại kết quả kiểm tra
+
+            function showLoading() {
+                loading.style.display = 'block';
+            }
+
+            function hideLoading() {
+                loading.style.display = 'none';
+            }
+
+            function addDeleteButton(rowElement, index) {
+                const deleteCell = document.createElement("td");
+                const deleteBtn = document.createElement("button");
+                deleteBtn.textContent = "Xóa";
+                deleteBtn.classList.add("btn", "btn-danger", "btn-sm");
+                deleteBtn.addEventListener("click", () => {
+                    rowElement.remove();
+                    checkedData.splice(index, 1); // xóa dòng khỏi mảng dữ liệu kiểm tra
+                });
+                deleteCell.appendChild(deleteBtn);
+                rowElement.appendChild(deleteCell);
+            }
+
+            async function loadFile(file) {
+                return new Promise((resolve, reject) => {
+                    if (!file || file.type !== "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") {
+                        alert("Vui lòng chọn tệp Excel hợp lệ (.xlsx)");
+                        return;
+                    }
+                    showLoading();
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", raw: true });
+
+                        tableBody.innerHTML = "";
+
+                        rows.slice(1).forEach((row, index) => {
+                            if (row.length < 5) return;
+                            const newRow = document.createElement("tr");
+                            row.slice(0, 5).forEach(cellData => {
+                                const cellElement = document.createElement("td");
+                                cellElement.textContent = cellData;
+                                newRow.appendChild(cellElement);
+                            });
+                            addDeleteButton(newRow, index);
+                            tableBody.appendChild(newRow);
+                        });
+
+                        hideLoading();
+                        resolve(file);
+                    };
+                    reader.onerror = () => {
+                        hideLoading();
+                        reject("Lỗi khi đọc file.");
+                    };
+                    reader.readAsArrayBuffer(file);
+                });
+            }
+
+            fileInput.addEventListener('change', async function (event) {
+                selectedFile = event.target.files[0];
+                try {
+                    await loadFile(selectedFile);
+                } catch (error) {
+                    console.error(error);
+                }
+            });
+
+            async function checkResultSheetData() {
+                const data = [];
+
+                document.querySelectorAll(".table tbody tr").forEach(row => {
+                    const cells = row.querySelectorAll("td");
+                    if (cells.length >= 5) {
+                        data.push({
+                            userName: cells[0].textContent.trim(),
+                            email: cells[1].textContent.trim(),
+                            score: parseFloat(cells[2].textContent),
+                            minute: parseInt(cells[3].textContent),
+                            second: parseInt(cells[4].textContent)
+                        });
+                    }
+                });
+
+                if (data.length === 0) {
+                    alert("Không có dữ liệu để kiểm tra.");
+                    return;
+                }
+
+                showLoading();
+                const token = localStorage.getItem("token");
+
+                if (!token) {
+                    alert("Vui lòng đăng nhập lại.");
+                    hideLoading();
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`/admin/contest/resultsheet/check-resultsheet?contest_id=${contest_id}`, {
+                        method: "POST",
+                        headers: {
+                            "Authorization": `Bearer ${token}`,
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({ data })
+                    });
+
+                    const result = await response.json();
+                    hideLoading();
+
+                    if (response.ok) {
+                        checkedData = result.data;
+                        tableBody.innerHTML = "";
+
+                        checkedData.forEach((item, index) => {
+                            const row = document.createElement("tr");
+                            row.innerHTML = `
+                                <td>${item.userName}</td>
+                                <td>${item.email}</td>
+                                <td>${item.score}</td>
+                                <td>${item.minute}</td>
+                                <td>${item.second}</td>
+                                <td style="font-weight:bold; color:${item.status === 'Hợp lệ' ? 'green' : 'red'}">${item.status}</td>
+                            `;
+                            addDeleteButton(row, index);
+                            tableBody.appendChild(row);
+                        });
+
+                        alert("Đã kiểm tra xong dữ liệu.");
+                    } else {
+                        alert(result.message || "Lỗi không xác định khi kiểm tra dữ liệu.");
+                    }
+                } catch (error) {
+                    console.error("Lỗi kiểm tra:", error);
+                    alert("Đã xảy ra lỗi khi kiểm tra dữ liệu.");
+                    hideLoading();
+                }
+            }
+
+            async function uploadFile() {
+                if (checkedData.length === 0) {
+                    alert("Chưa kiểm tra dữ liệu hoặc không có dữ liệu.");
+                    return;
+                }
+
+                const invalidRows = checkedData.filter(item => item.status !== 'Hợp lệ');
+                if (invalidRows.length > 0) {
+                    alert("Tất cả các dòng phải hợp lệ mới có thể tải lên!\nVui lòng kiểm tra lại dữ liệu.");
+                    return;
+                }
+
+                showLoading();
+                const token = localStorage.getItem("token");
+
+                if (!token) {
+                    alert("Chưa có token, vui lòng đăng nhập lại.");
+                    hideLoading();
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`/admin/contest/resultsheet/insert-resultsheet-json?contest_id=${contest_id}`, {
+                        method: "POST",
+                        headers: {
+                            "Authorization": `Bearer ${token}`,
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({ data: checkedData }) // vì tất cả đều hợp lệ, nên dùng toàn bộ checkedData
+                    });
+
+                    const result = await response.json();
+                    hideLoading();
+
+                    if (response.ok) {
+                        alert(result.message || "Tải dữ liệu thành công!");
+                    } else {
+                        alert(result.message || "Đã xảy ra lỗi khi tải dữ liệu.");
+                    }
+                } catch (error) {
+                    hideLoading();
+                    console.error("Lỗi khi tải dữ liệu:", error);
+                    alert("Đã xảy ra lỗi khi tải dữ liệu lên.");
+                }
+            }
+
+
+            uploadButton.addEventListener('click', async function () {
+                await uploadFile();
+            });
+
+            resultSheetLink.addEventListener('click', async function (e) {
+                e.preventDefault(); // Ngăn chuyển trang
+                await checkResultSheetData();
+            });
         });
     </script>
-    
+
     <!--/ Hoverable Table rows -->
     <%- include('../partical/footer'); %>

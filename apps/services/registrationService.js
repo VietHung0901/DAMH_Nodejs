@@ -17,6 +17,10 @@ class RegistrationService {
         return await this.registrationCollection.insertOne(registration);
     }
 
+    async insertManyRegistration(registration) {
+        return await this.registrationCollection.insertMany(registration);
+    }
+
     // Hàm dùng để lấy danh sách phiếu đăng ký theo contest_id, dùng lookup để truy vấn qua các collection khác
     async getRegistrationListByContest_id(contest_id) {
         const cursor = await this.registrationCollection.aggregate([
@@ -85,6 +89,7 @@ class RegistrationService {
             }
         ]).next(); // Lấy một bản ghi đầu tiên
     }
+
 }
 
 module.exports = RegistrationService;

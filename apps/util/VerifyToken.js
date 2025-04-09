@@ -9,12 +9,12 @@ function verifyToken(req, res, next) {
     var temp = req.headers['authorization'].split(" ");
 
     if (temp.length < 2) {
-        return res.status(401).send({ auth: false, message: 'Không có token nào được cung cấp.' });
+        return res.status(401).send({ auth: false, message: 'Định dạng token không hợp lệ.' });
     }
 
     token = temp[1];
     if (!token) {
-        return res.status(401).send({ auth: false, message: 'Không có token nào được cung cấp.' });
+        return res.status(401).send({ auth: false, message: 'Token sai định dạng.' });
     }
 
     try{

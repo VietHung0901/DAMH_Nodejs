@@ -16,6 +16,10 @@ router.get("/", function(req, res){
     res.render("admin/contest/list");
 })
 
+router.get("/insert", function(req, res){
+    res.render("admin/contest/insert");
+})
+
 router.post("/insert-contest", async function(req, res){
     var contestService = new ContestService();
     var contest = new Contest();

@@ -6,6 +6,8 @@ var route = express.Router();
 var ResultSheet = require("../../entity/resultsheet");
 var ResultSheetService = require("../../services/resultsheetService");
 var RegistrationService = require("../../services/registrationService");
+var UserService = require("../../services/userService");
+
 
 const { verifyToken, verifyRole } = require('../../util/VerifyToken');
 
@@ -26,42 +28,108 @@ router.get("/resultsheet-list-by-contest_id", async function (req, res) {
     res.json(resultsheet);
 });
 
+router.post("/check-resultsheet", verifyToken, verifyRole("admin"), async (req, res) => {
+    const contest_id = req.query.contest_id;
+    const data = req.body.data;
 
-const multer = require("multer");
-const XLSX = require("xlsx");
-const upload = multer({ storage: multer.memoryStorage() });
-// Route để xử lý import file Excel
-router.post("/insert-resultsheet-by-excel", upload.single("file"), async (req, res) => {
-    var contest_id = req.query.contest_id;
-    var resultsheetService = new ResultSheetService();
-    var registrationService = new RegistrationService();
+    if (!Array.isArray(data) || data.length === 0) {
+        return res.status(400).json({ message: "Dữ liệu gửi lên không hợp lệ hoặc trống." });
+    }
+
+    const resultsheetService = new ResultSheetService();
+    const registrationService = new RegistrationService();
+    const userService = new UserService();
+
     try {
-        if (!req.file) {
-            return res.status(400).json({ message: "Vui lòng tải lên một file Excel." });
+        const resultSheets = [];
+
+        for (const row of data) {
+            const { userName, score, minute, second, email } = row;
+
+            let status = "Hợp lệ"; // Mặc định là hợp lệ
+            let registration = null;
+
+            const user = await userService.getUserByEmail(email);
+            registration = await registrationService.getRegistrationByContestAndUsername(contest_id, userName);
+
+            if (!registration) {
+                status = "Không tồn tại đăng ký";
+            } else if (!user || user.username !== userName) {
+                status = "Sai thông tin người dùng";
+            } else {
+                const existed = await resultsheetService.getResultSheetListByContestIdAndUsername(contest_id, userName);
+                if (existed && existed.length > 0) {
+                    status = "Đã tồn tại điểm";
+                }
+            }
+
+            resultSheets.push({
+                userName,
+                score,
+                minute,
+                second,
+                email,
+                status
+            });
         }
 
-        const workbook = XLSX.read(req.file.buffer, { type: "buffer" });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", raw: true });
+        // Trả về danh sách đã kiểm tra
+        res.status(200).json({
+            message: "Kiểm tra dữ liệu thành công.",
+            data: resultSheets
+        });
 
-        if (rows.length < 2) {
-            return res.status(400).json({ message: "File Excel không có dữ liệu hợp lệ." });
+    } catch (error) {
+        console.error("Lỗi kiểm tra dữ liệu:", error);
+        res.status(500).json({ message: "Đã xảy ra lỗi khi xử lý dữ liệu." });
+    }
+});
+
+
+router.post("/insert-resultsheet-json", verifyToken, verifyRole("admin"), async (req, res) => {
+    const contest_id = req.query.contest_id;
+    const data = req.body.data;
+
+    if (!Array.isArray(data) || data.length === 0) {
+        return res.status(400).json({ message: "Dữ liệu gửi lên không hợp lệ hoặc trống." });
+    }
+
+    const resultsheetService = new ResultSheetService();
+    const registrationService = new RegistrationService();
+
+    try {
+        const resultSheets = [];
+
+        for (const row of data) {
+            const { userName, score, minute, second, email } = row;
+
+            const registration = await registrationService.getRegistrationByContestAndUsername(contest_id, userName);
+            if (!registration) {
+                console.warn(`Không tìm thấy đăng ký cho: ${userName}`);
+                continue; // hoặc throw error tuỳ yêu cầu
+            }
+
+            const resultSheet = new ResultSheet(
+                new ObjectId(),
+                registration._id,
+                score,
+                minute,
+                second
+            );
+
+            resultSheets.push(resultSheet);
         }
 
-        // Bỏ qua dòng tiêu đề và xử lý dữ liệu
-        const resultSheets = await Promise.all(rows.slice(1).map(async (row) => {
-            const registration = await registrationService.getRegistrationByContestAndUsername(contest_id, row[0]);
-            return new ResultSheet(new ObjectId(), registration._id, row[1], row[2], row[3]);
-        }));
-           
-
-        // Lưu vào MongoDB
         const result = await resultsheetService.insertResultSheets(resultSheets);
 
-        res.status(200).json({ message: "Import dữ liệu thành công!", insertedCount: result.insertedCount });
+        res.status(200).json({
+            message: `Import thành công ${result.insertedCount} bản ghi.`,
+            insertedCount: result.insertedCount
+        });
+
     } catch (error) {
-        console.error("Lỗi import file Excel:", error);
-        res.status(500).json({ message: "Đã xảy ra lỗi khi xử lý file Excel." });
+        console.error("Lỗi import dữ liệu JSON:", error);
+        res.status(500).json({ message: "Đã xảy ra lỗi khi xử lý dữ liệu JSON." });
     }
 });
 

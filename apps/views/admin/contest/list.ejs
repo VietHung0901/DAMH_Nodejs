@@ -33,22 +33,31 @@
         </div>
     </div>
 
+    <div class="buy-now">
+        <a id="resultSheetLink" class="btn btn-danger btn-buy-now">Tạo cuộc thi</a>
+    </div>
+
     <script>
         document.addEventListener("DOMContentLoaded", async function () {
+            // Lấy phần tử thẻ a
+            const resultSheetLink = document.getElementById("resultSheetLink");
+            // Cập nhật href với contest_id
+            resultSheetLink.href = `/admin/contest/insert`;
+
             const loading = document.getElementById('loading');
             loading.style.display = 'block';
 
             const apiUrl = "http://localhost:3000/admin/contest/contest-list"; // Thay bằng API thật của bạn
             const tableBody = document.querySelector(".table-border-bottom-0");
-    
+
             try {
                 // Gọi API để lấy danh sách cuộc thi
                 const response = await fetch(apiUrl);
                 const contests = await response.json();
-    
+
                 // Xóa nội dung cũ trong bảng
                 tableBody.innerHTML = "";
-    
+
                 // Duyệt qua danh sách cuộc thi và thêm vào bảng
                 contests.forEach((contest) => {
                     const row = `
@@ -82,13 +91,13 @@
                 console.error("Lỗi khi tải danh sách cuộc thi:", error);
             }
         });
-    
+
         // Hàm chỉnh sửa cuộc thi
         function editContest(id) {
             alert("Chỉnh sửa cuộc thi có ID: " + id);
             // Thêm logic chỉnh sửa ở đây
         }
     </script>
-    
+
     <!--/ Hoverable Table rows -->
     <%- include('../partical/footer'); %>
